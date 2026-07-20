@@ -23,6 +23,7 @@ from models import (
     GovernmentWarningExtraction,
     ImageQuality,
     ResponseEnvelope,
+    worst_verdict,
 )
 from warning_text import BODY, PREFIX
 
@@ -281,6 +282,20 @@ def _passing_fields():
         FieldResult.from_comparator_result(compare_net_contents("750 mL", "750 mL")),
         FieldResult.from_comparator_result(compare_government_warning(_warning_extraction(STATUTORY_TEXT))),
     ]
+
+
+class TestWorstVerdict:
+    def test_all_pass_is_pass(self):
+        assert worst_verdict(["PASS", "PASS", "PASS"]) == "PASS"
+
+    def test_flag_beats_pass(self):
+        assert worst_verdict(["PASS", "FLAG", "PASS"]) == "FLAG"
+
+    def test_fail_beats_flag_and_pass(self):
+        assert worst_verdict(["PASS", "FLAG", "FAIL"]) == "FAIL"
+
+    def test_needs_better_image_beats_everything(self):
+        assert worst_verdict(["FAIL", "NEEDS BETTER IMAGE", "PASS"]) == "NEEDS BETTER IMAGE"
 
 
 class TestResponseEnvelope:

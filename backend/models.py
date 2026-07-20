@@ -62,6 +62,13 @@ _FIELD_NAMES = frozenset(
 _VERDICT_PRECEDENCE = {"PASS": 0, "FLAG": 1, "FAIL": 2, "NEEDS BETTER IMAGE": 3}
 
 
+def worst_verdict(verdicts: List[str]) -> str:
+    """SPEC.md section 2: 'Overall verdict = worst field verdict.' Shared by
+    the ResponseEnvelope invariant below and by app.py, which has to compute
+    overall_verdict before it can construct the envelope in the first place."""
+    return max(verdicts, key=lambda v: _VERDICT_PRECEDENCE[v])
+
+
 class EqualOp(BaseModel):
     op: Literal["equal"]
     text: str
@@ -150,10 +157,10 @@ class ResponseEnvelope(BaseModel):
                 f"Expected exactly the five compared fields {sorted(_FIELD_NAMES)}, got {field_names}."
             )
 
-        worst = max(self.fields, key=lambda f: _VERDICT_PRECEDENCE[f.verdict])
-        if self.overall_verdict != worst.verdict:
+        worst = worst_verdict([f.verdict for f in self.fields])
+        if self.overall_verdict != worst:
             raise ValueError(
-                f"overall_verdict must equal the worst field verdict ({worst.verdict}), "
+                f"overall_verdict must equal the worst field verdict ({worst}), "
                 f"got {self.overall_verdict}."
             )
         return self
