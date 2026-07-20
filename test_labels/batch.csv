@@ -1,0 +1,7 @@
+image_filename,brand_name,class_type,alcohol_content,net_contents,beverage_type
+t1_clean_pass.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL,distilled_spirits
+t2_brand_case_variant.png,Stone's Throw,Kentucky Straight Bourbon Whiskey,45,750 mL,distilled_spirits
+t3_warning_title_case.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL,distilled_spirits
+t4_warning_word_swap.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL,distilled_spirits
+t5_warning_missing.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL,distilled_spirits
+t6_abv_mismatch.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL,distilled_spirits

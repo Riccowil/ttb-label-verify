@@ -1,0 +1,13 @@
+"""All tunable values for the verification engine. Single source of truth."""
+
+BRAND_SIMILARITY_FLAG_FLOOR = 0.85
+CLASS_TYPE_SIMILARITY_FLAG_FLOOR = 0.70
+ABV_TOLERANCE = 0.0
+NET_CONTENTS_TOLERANCE = 0.0
+CONVERT_UNITS = True          # 75 cL == 750 mL -> PASS with note
+VISION_TIMEOUT_SECONDS = 10
+VISION_RETRIES = 1
+BATCH_MAX_ROWS = 300
+IMAGE_MAX_MB = 10
+IMAGE_LONG_EDGE_PX = 1568
+MODEL_NAME = "claude-haiku-4-5-20251001"
