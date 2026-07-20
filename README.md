@@ -9,7 +9,7 @@ health warning — returning per-field verdicts with evidence.
 **Design principle: the LLM extracts, code decides.** All compliance logic is
 deterministic, unit-tested, and explainable. The model never renders a verdict.
 
-Deployed prototype: `<URL>`
+Deployed prototype: [ttb-label-verify-production-370d.up.railway.app](https://ttb-label-verify-production-370d.up.railway.app)
 
 ## Quick Start
 
@@ -44,8 +44,8 @@ cd backend && pytest
    low-confidence extractions cap at FLAG; unreadable images return
    NEEDS BETTER IMAGE instead of a compliance verdict.
 
-The response envelope includes `processing_time_ms` — typical round trip is
-2–4 seconds against the stated 5-second usability requirement.
+The response envelope includes `processing_time_ms` — measured 2.0–4.5s
+server-side in production against the stated 5-second usability requirement.
 
 ## Batch Mode
 
@@ -69,6 +69,54 @@ exportable results.
 missing warning, ABV mismatch, glare, wine without stated ABV). These double
 as the acceptance suite and the demo script.
 
+## Verified in Production
+
+140 backend tests + 13 frontend tests passing. The full T1–T8 acceptance
+suite and batch mode (CSV export included) were run against the deployed
+Railway service — not local dev, not mocked — with server-side
+`processing_time_ms` ranging 2.0–4.5s across those runs.
+
+| Test | Scenario | Expected | Actual | Match |
+|---|---|---|---|---|
+| T1 | clean_pass | PASS (all fields) | PASS | ✓ |
+| T2 | brand_case_variant | PASS + variance note | PASS — brand name flagged case/punctuation variance | ✓ |
+| T3 | warning_title_case | FAIL (prefix case) | FAIL | ✓ |
+| T4 | warning_word_swap | FAIL + replace op in diff | FAIL — word-level diff rendered | ✓ |
+| T5 | warning_missing | FAIL (present: false) | FAIL | ✓ |
+| T6 | abv_mismatch | FAIL (45.0 vs 40.0) | FAIL | ✓ |
+| T7 | bad_image_glare | NEEDS BETTER IMAGE | NEEDS BETTER IMAGE | ✓ |
+| T8 | wine_no_abv | PASS w/ "not stated — permitted" | PASS — not stated on label, permitted for wine | ✓ |
+
+**T1 — clean pass, all fields PASS**
+![T1 clean pass result](docs/screenshots/t1_clean_pass.png)
+
+**T2 — brand case variant, PASS with a variance note**
+![T2 brand case variant result](docs/screenshots/t2_brand_case_variant.png)
+
+**T4 — warning word swap, FAIL with the word-level diff rendered**
+![T4 warning word swap diff](docs/screenshots/t4_warning_word_swap.png)
+
+**T3 — warning prefix title case, FAIL on exact-case prefix**
+![T3 warning title case result](docs/screenshots/t3_warning_title_case.png)
+
+**T5 — warning missing, FAIL on absent government warning**
+![T5 warning missing result](docs/screenshots/t5_warning_missing.png)
+
+**T6 — ABV mismatch, FAIL on application vs. label value**
+![T6 ABV mismatch result](docs/screenshots/t6_abv_mismatch.png)
+
+**T7 — glare/angle, NEEDS BETTER IMAGE**
+![T7 bad image glare result](docs/screenshots/t7_bad_image_glare.png)
+
+**T8 — wine with no ABV stated, PASS**
+![T8 wine no ABV result](docs/screenshots/t8_wine_no_abv.png)
+
+**Batch — T1–T6 processed sequentially, plus the unreferenced-images skip notice**
+![Batch results with skip notice](docs/screenshots/T9_Batch.png)
+
+**Mobile, over cellular — T1 results on a phone**
+![Mobile results on a phone over cellular](docs/screenshots/t1_mobile_results_top.jpg)
+
 ## Assumptions & Interpretation Notes
 
 The written instructions leave several decisions open; each was resolved with
@@ -79,6 +127,15 @@ a documented assumption rather than a clarifying question:
   The instructions don't specify how application data enters the system;
   manual entry + CSV batch was implemented based on the interview notes'
   batch-upload request.
+- Batch upload is deliberately asymmetric between the two ways a row and
+  its image can fail to line up. A CSV row with no matching uploaded image
+  is a hard pre-flight failure — that row cannot be verified at all, so
+  the whole batch is rejected before any processing starts. An uploaded
+  image no CSV row references is not an error — the CSV is the source of
+  truth for what gets verified — so it's skipped with a non-blocking
+  notice instead. Found and fixed via hands-on dogfooding of the
+  production deploy, where uploading extra images silently (and
+  correctly) skipped them with no indication anything had happened.
 - The government warning is validated against the statutory text in
   27 CFR Part 16 as a two-part rule: the "GOVERNMENT WARNING:" prefix is
   compared case-sensitively; the body is compared word-for-word,
@@ -90,6 +147,11 @@ a documented assumption rather than a clarifying question:
 - ABV and net contents are compared as parsed numeric values, not strings —
   formatting variance ("45% Alc./Vol." vs "45% ABV") is legal; value
   variance is not. Tolerance is zero.
+- ABV not stated on a wine label is PASS with a permitted-for-beverage-type
+  note, as implemented — not FLAG. TTB regulations don't require ABV on
+  wine labels below a strength threshold, so a null there is a legal
+  omission, not a missing-data problem; distilled spirits and beer, where
+  it's required, still FLAG an unstated value for review.
 - Brand and class/type use normalized fuzzy matching with a three-tier
   verdict (PASS/FLAG/FAIL). Thresholds live in a single config file and are
   tunable without code changes.
@@ -123,6 +185,11 @@ a documented assumption rather than a clarifying question:
 - **Beverage-type rule variance** (e.g., ABV optional on some wine/beer) is
   handled minimally; a production version would encode the full CFR rule
   matrix per class.
+- **Known dev-tooling advisory.** `npm audit` flags a CORS advisory in the
+  bundled esbuild dev server (GHSA-67mh-4wv8-2f99) — it affects the local
+  Vite dev server only, not the production build shipped here. The full
+  fix is a Vite 8 major-version bump, deferred rather than forcing an
+  untested breaking upgrade.
 
 ## Deployment
 
