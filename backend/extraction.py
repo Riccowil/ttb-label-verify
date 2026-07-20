@@ -96,12 +96,28 @@ def _strip_markdown_fences(text: str) -> str:
     return match.group(1).strip() if match else stripped
 
 
+def _normalize_missing_warning_legibility(data: dict) -> dict:
+    """Observed live: when government_warning.present is false, the model
+    sometimes returns legibility: null instead of an enum value — there's
+    no warning text left to judge legibility of. Every other field still
+    extracts normally in that case, so null here means "not applicable,"
+    not "unreadable." Defaulting to "clear" lets the missing warning reach
+    the comparator as the compliance FAIL it actually is, instead of
+    crashing schema validation or being mistaken for a bad photo."""
+    warning = data.get("government_warning")
+    if isinstance(warning, dict) and warning.get("legibility") is None:
+        warning["legibility"] = "clear"
+    return data
+
+
 def parse_extraction_response(raw_text: str) -> ExtractionResult:
     cleaned = _strip_markdown_fences(raw_text)
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError as exc:
         raise ExtractionError(f"Vision API returned non-JSON response: {exc}") from exc
+
+    data = _normalize_missing_warning_legibility(data)
 
     try:
         return ExtractionResult.model_validate(data)

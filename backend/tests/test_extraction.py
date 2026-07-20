@@ -196,6 +196,24 @@ class TestParseExtractionResponse:
         assert result.brand_name is None
         assert result.government_warning.present is False
 
+    def test_null_legibility_on_missing_warning_defaults_to_clear(self):
+        # Observed live: when the warning is genuinely absent, the model
+        # sometimes returns legibility: null for that sub-object (there's no
+        # warning text to judge legibility of) while every other field still
+        # extracts at high confidence — proving the image itself is legible.
+        # A null here must not crash the pipeline or be mistaken for
+        # "unreadable" (which would wrongly short-circuit to NEEDS BETTER
+        # IMAGE instead of correctly reporting the missing warning as a
+        # compliance FAIL).
+        data = _valid_extraction_json()
+        data["government_warning"]["present"] = False
+        data["government_warning"]["verbatim_text"] = None
+        data["government_warning"]["prefix_appears_bold"] = None
+        data["government_warning"]["legibility"] = None
+        result = parse_extraction_response(json.dumps(data))
+        assert result.government_warning.present is False
+        assert result.government_warning.legibility == "clear"
+
 
 # ---------------------------------------------------------------------------
 # needs_better_image — SPEC section 5 short-circuit rule
