@@ -124,10 +124,28 @@ a documented assumption rather than a clarifying question:
   handled minimally; a production version would encode the full CFR rule
   matrix per class.
 
+## Deployment
+
+Single Railway service (ADR-005): a multi-stage `Dockerfile` builds the
+Vite frontend, then copies the static output into the FastAPI container.
+`app.py` mounts it after every `/api/*` route, so the API always wins the
+match; the frontend calls relative paths (`/api/verify`), same origin, no
+CORS surface in production. `/api/health` doubles as the Railway
+healthcheck (`railway.json`).
+
+```bash
+docker build -t ttb-label-verify .
+docker run -p 8000:8000 -e PORT=8000 -e ANTHROPIC_API_KEY=sk-... ttb-label-verify
+```
+
+`ANTHROPIC_API_KEY` is a runtime-only env var — never baked into the
+image, never committed to a file. Set it in the Railway dashboard.
+
 ## Architecture Decisions
 
 See `docs/adr/` for records on extract-then-decide, provider swappability,
-the verdict vocabulary, and batch design. Full specification in `SPEC.md`.
+the verdict vocabulary, batch design, and the deploy topology. Full
+specification in `SPEC.md`.
 
 ## What I'd Do Next
 

@@ -2,8 +2,12 @@
 // SPEC.md section 11 copy verbatim in `detail` for the documented failure
 // cases (wrong file type, extraction timeout) — this module surfaces that
 // message as-is rather than re-deriving it client-side.
+//
+// ADR-005: production serves frontend and backend from the same origin,
+// so the build-time default is a relative path, not localhost. Local dev
+// overrides this via frontend/.env.development.
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export class ApiError extends Error {
   constructor(status, detail) {

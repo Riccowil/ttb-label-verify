@@ -13,10 +13,12 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from starlette.concurrency import run_in_threadpool
 
@@ -372,3 +374,14 @@ def get_batch(batch_id: str):
     ]
     status = "done" if all(row.status in ("done", "failed") for row in batch.rows) else "processing"
     return {"batch_id": batch.batch_id, "status": status, "rows": rows}
+
+
+# ---------------------------------------------------------------------------
+# Static frontend — ADR-005: one Railway service serves both. Mounted last
+# so it never shadows the /api/* routes above; absent in local backend-only
+# dev (no frontend build alongside app.py) this is simply skipped.
+# ---------------------------------------------------------------------------
+
+_STATIC_DIR = Path(__file__).parent / "static"
+if _STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")

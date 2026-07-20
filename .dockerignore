@@ -1,0 +1,13 @@
+.git
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+frontend/public/_verify_fixtures
+test_labels
+scripts
+docs
+README.md
+SPEC.md
+CLAUDE.md
