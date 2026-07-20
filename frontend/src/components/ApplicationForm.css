@@ -1,13 +1,25 @@
 .application-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr), not 1fr: grid items default to min-width: auto, which
+     resolves to the content's intrinsic minimum — for a text input that's
+     its default ~20-char width, not 0. Without the explicit 0 floor, the
+     columns refuse to shrink past that and the inputs push through the
+     card's right edge at intermediate viewport widths. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-4);
+}
+
+@media (max-width: 480px) {
+  .application-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
 }
 
 .form-field__label {
@@ -17,6 +29,8 @@
 }
 
 .form-field__input {
+  width: 100%;
+  min-width: 0;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
