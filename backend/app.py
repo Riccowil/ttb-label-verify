@@ -239,6 +239,12 @@ def _validate_batch_row(row: dict, uploaded_filenames: set) -> List[str]:
     if not filename:
         errors.append("image_filename is required.")
     elif filename not in uploaded_filenames:
+        # Intentionally asymmetric with the reverse case (see
+        # _preflight_validate_batch's unreferenced_images): a row without its
+        # image is a hard pre-flight failure because that row literally
+        # cannot be verified. An uploaded image nobody's row references is
+        # just unused input — harmless to every row that *is* referenced —
+        # so it's surfaced as a notice, not a rejection.
         errors.append(f"image_filename '{filename}' does not match any uploaded file.")
 
     for field in ("brand_name", "class_type", "net_contents"):
@@ -261,7 +267,7 @@ def _validate_batch_row(row: dict, uploaded_filenames: set) -> List[str]:
 async def _preflight_validate_batch(csv_bytes: bytes, images: List[UploadFile]):
     """Rejects the whole batch on any problem, with row-level detail where
     possible — SPEC section 9: 'never fail mid-run.' Returns (rows,
-    image_payloads) on success."""
+    image_payloads, unreferenced_images) on success."""
     try:
         csv_text = csv_bytes.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -306,7 +312,16 @@ async def _preflight_validate_batch(csv_bytes: bytes, images: List[UploadFile]):
     if row_errors:
         raise _batch_error("Batch validation failed.", row_errors=row_errors)
 
-    return rows, image_payloads
+    # The CSV is the source of truth for what gets verified (SPEC section 9).
+    # An uploaded image with no row referencing it doesn't block anything —
+    # it's just extra input, most likely leftover from a wider file
+    # selection — so it's reported back as an informational notice rather
+    # than rejected. See the row-side check above for the (intentionally
+    # asymmetric) opposite case.
+    referenced_filenames = {row["image_filename"] for row in rows}
+    unreferenced_images = sorted(set(image_payloads) - referenced_filenames)
+
+    return rows, image_payloads, unreferenced_images
 
 
 async def _process_batch(batch_id: str, image_payloads: dict, extractor: VisionExtractor) -> None:
@@ -332,7 +347,7 @@ async def verify_batch(
     extractor: VisionExtractor = Depends(get_extractor),
 ):
     csv_bytes = await csv.read()
-    rows, image_payloads = await _preflight_validate_batch(csv_bytes, images)
+    rows, image_payloads, unreferenced_images = await _preflight_validate_batch(csv_bytes, images)
 
     batch_id = str(uuid.uuid4())
     batch_rows = [
@@ -353,7 +368,11 @@ async def verify_batch(
 
     background_tasks.add_task(_process_batch, batch_id, image_payloads, extractor)
 
-    return {"batch_id": batch_id, "row_count": len(batch_rows)}
+    return {
+        "batch_id": batch_id,
+        "row_count": len(batch_rows),
+        "unreferenced_images": unreferenced_images,
+    }
 
 
 @app.get("/api/batch/{batch_id}")

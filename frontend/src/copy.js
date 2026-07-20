@@ -1,5 +1,8 @@
-// Every user-facing string here is copied verbatim from SPEC.md section 11.
+// Every static string here is copied verbatim from SPEC.md section 11.
 // Single source so no component has to re-derive or paraphrase wording.
+// unreferencedImagesNotice() below is the one exception — a post-launch
+// dogfooding fix with no SPEC precedent — kept here anyway so all
+// user-facing wording still lives in one place.
 
 export const COPY = {
   uploadZone: "Drop label image here or tap to browse (JPEG/PNG, max 10MB)",
@@ -30,3 +33,17 @@ export const FIELD_LABELS = {
   net_contents: "Net contents",
   government_warning: "Government warning",
 };
+
+// Non-blocking notice for uploaded batch images no CSV row references.
+// The CSV stays the source of truth (see app.py's _preflight_validate_batch)
+// — this is informational only, never an error.
+export function unreferencedImagesNotice(filenames) {
+  if (!filenames || filenames.length === 0) {
+    return null;
+  }
+  const isSingle = filenames.length === 1;
+  return (
+    `${filenames.length} uploaded ${isSingle ? "image" : "images"} not referenced in the CSV ` +
+    `${isSingle ? "was" : "were"} skipped: ${filenames.join(", ")}.`
+  );
+}

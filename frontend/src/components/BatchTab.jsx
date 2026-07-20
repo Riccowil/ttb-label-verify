@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BatchUploadForm from "./BatchUploadForm.jsx";
 import BatchValidationErrors from "./BatchValidationErrors.jsx";
 import BatchResultsTable from "./BatchResultsTable.jsx";
+import UnreferencedImagesNotice from "./UnreferencedImagesNotice.jsx";
 import ErrorPanel from "./ErrorPanel.jsx";
 import { submitBatch, getBatchStatus, ApiError } from "../api.js";
 import { COPY } from "../copy.js";
@@ -15,6 +16,7 @@ export default function BatchTab() {
   const [status, setStatus] = useState("idle"); // idle | submitting | polling | done | error
   const [batchId, setBatchId] = useState(null);
   const [rows, setRows] = useState([]);
+  const [unreferencedImages, setUnreferencedImages] = useState([]);
   const [validationError, setValidationError] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -28,10 +30,12 @@ export default function BatchTab() {
     setValidationError(null);
     setErrorMessage(null);
     setRows([]);
+    setUnreferencedImages([]);
 
     try {
-      const { batch_id } = await submitBatch(csvFile, imageFiles);
+      const { batch_id, unreferenced_images } = await submitBatch(csvFile, imageFiles);
       setBatchId(batch_id);
+      setUnreferencedImages(unreferenced_images ?? []);
       setStatus("polling");
     } catch (err) {
       if (err instanceof ApiError && err.detail && typeof err.detail === "object") {
@@ -91,7 +95,10 @@ export default function BatchTab() {
       {validationError && <BatchValidationErrors detail={validationError} />}
       {errorMessage && <ErrorPanel message={errorMessage} />}
       {(status === "polling" || status === "done") && (
-        <BatchResultsTable rows={rows} isComplete={status === "done"} />
+        <>
+          <UnreferencedImagesNotice filenames={unreferencedImages} />
+          <BatchResultsTable rows={rows} isComplete={status === "done"} />
+        </>
       )}
     </div>
   );

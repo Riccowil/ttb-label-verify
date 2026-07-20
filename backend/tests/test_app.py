@@ -376,8 +376,9 @@ class TestBatchHappyPath:
             ],
         )
         assert response.status_code == 202
-        batch_id = response.json()["batch_id"]
         assert response.json()["row_count"] == 2
+        assert response.json()["unreferenced_images"] == []
+        batch_id = response.json()["batch_id"]
 
         status_response = client.get(f"/api/batch/{batch_id}")
         assert status_response.status_code == 200
@@ -390,6 +391,36 @@ class TestBatchHappyPath:
             assert row["result"]["overall_verdict"] == "PASS"
             assert row["error"] is None
 
+        assert len(fake.calls) == 2
+
+    def test_unreferenced_uploaded_images_are_reported_but_do_not_block(self, client_factory):
+        # Dogfooding finding: uploading more images than the CSV references
+        # (e.g. leftover files from a wider selection) must not error or
+        # block the run — the CSV is the source of truth — but it also
+        # shouldn't be silently swallowed. The extras come back as a notice
+        # alongside the normal batch_id/row_count response.
+        client, fake = client_factory(result=_clear_extraction())
+        rows = _valid_batch_rows(2)  # references label1.jpg, label2.jpg
+        response = client.post(
+            "/api/verify-batch",
+            files=[
+                ("csv", ("batch.csv", _csv_bytes(rows), "text/csv")),
+                ("images", ("label1.jpg", _make_image_bytes(), "image/jpeg")),
+                ("images", ("label2.jpg", _make_image_bytes(), "image/jpeg")),
+                ("images", ("t7_bad_image_glare.png", _make_image_bytes(), "image/jpeg")),
+                ("images", ("t8_wine_no_abv.png", _make_image_bytes(), "image/jpeg")),
+            ],
+        )
+        assert response.status_code == 202
+        body = response.json()
+        assert body["row_count"] == 2
+        assert body["unreferenced_images"] == ["t7_bad_image_glare.png", "t8_wine_no_abv.png"]
+
+        # the run itself proceeds normally for the referenced rows only
+        status_response = client.get(f"/api/batch/{body['batch_id']}")
+        status_body = status_response.json()
+        assert len(status_body["rows"]) == 2
+        assert status_body["status"] == "done"
         assert len(fake.calls) == 2
 
     def test_one_row_extraction_failure_does_not_abort_other_rows(self, client_factory):
