@@ -1,0 +1,101 @@
+:root {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  --color-bg: #f7f4ee;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f1ede3;
+  --color-border: #e2ddce;
+  --color-text: #21242a;
+  --color-text-muted: #5c6168;
+
+  --color-accent: #2c3e6b;
+  --color-accent-hover: #23315a;
+  --color-accent-tint: #e8ebf3;
+
+  --color-pass: #1e7a4c;
+  --color-pass-tint: #e5f4ec;
+  --color-flag: #96660a;
+  --color-flag-tint: #fbf0da;
+  --color-fail: #a32219;
+  --color-fail-tint: #fbeae9;
+  --color-needs-image: #3e5c76;
+  --color-needs-image-tint: #e9eff4;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(33, 36, 42, 0.06);
+  --shadow-md: 0 4px 16px rgba(33, 36, 42, 0.08);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
